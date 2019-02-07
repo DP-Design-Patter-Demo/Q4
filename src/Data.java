@@ -1,5 +1,7 @@
 
 
+import com.mysql.jdbc.exceptions.jdbc4.MySQLIntegrityConstraintViolationException;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +34,21 @@ public class Data {
         return new Data();
     }
 
+    public boolean signUpLibrarian(Librarian librarian){
+        try{
+            String firstName = librarian.getFirstName();
+            String lastName = librarian.getLastName();
+            String userName = librarian.getUserName();
+            String password = librarian.getPassword();
+
+            statement = connection.createStatement();
+            String sql = "INSERT INTO librarians (first_name, last_name, user_name, password) VALUES ('"+firstName+"', '"+lastName+"', '"+userName+"', '"+password+"');";
+            return statement.execute(sql);
+        }catch (SQLException e){
+            e.printStackTrace();
+            return false;
+        }
+    }
     //factory method (building list of object)
     public List<Book> getAllBooks() {
         List<Book> books = new ArrayList();
@@ -57,16 +74,23 @@ public class Data {
         }
         return books;
     }
+    public List<Author> getAllAuthors(){
+        List<Author> authors = new ArrayList();
+        try{
+            statement = this.connection.createStatement();
+            String sql = "SELECT * FROM authors;";
+            ResultSet resultSet = statement.executeQuery(sql);
+            while (resultSet.next()){
+                String firstName = resultSet.getString("first_name");
+                Author author = findAuthorByName(firstName);
+                authors.add(author);
+            }
+
+        }catch (SQLException e){
+        }
+        return authors;
+    }
     public boolean addBook(Book book, Librarian by){
-//        Session session = factory.openSession();
-//        Transaction tx = null;
-//        tx.begin();
-//        String check = (String)session.save(book);
-//        tx.commit();
-//        if(check!= null){
-//            return true;
-//        }
-//        return false;
 
         try{
             statement = connection.createStatement();
@@ -83,7 +107,18 @@ public class Data {
         return false;
 
     }
-
+    public boolean addAuthor(Author author){
+        try{
+            statement = connection.createStatement();
+            String firstName = author.getFirstName();
+            String lastName = author.getLastName();
+            String sql = "INSERT INTO authors (first_name, last_name) values ('"+firstName+"', '"+lastName+"');";
+            return  statement.execute(sql);
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+        return false;
+    }
     //factory method (building an object)
     public Book findBook(String key){
         Book book = null;
@@ -128,6 +163,20 @@ public class Data {
             return false;
         }
     }
+    public boolean updateAuthor(Author oldAuthor, Author newAuthor){
+        try{
+            statement = connection.createStatement();
+            String firstName = newAuthor.getFirstName();
+            String lastName = newAuthor.getLastName();
+            int oldId = oldAuthor.getId();
+            String sql = "UPDATE authors SET first_name = '"+firstName+"', last_name = '"+lastName+"' WHERE id = "+oldId+";";
+            return statement.execute(sql);
+        }catch (SQLException e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean deleteBook(Book book){
         int id = book.getId();
         try{
@@ -138,6 +187,12 @@ public class Data {
             e.printStackTrace();
             return false;
         }
+    }
+    public boolean deleteAuthor(Author author) throws SQLException {
+        int id = author.getId();
+        statement = connection.createStatement();
+        String sql = "DELETE FROM authors WHERE id = " + id + ";";
+        return statement.execute(sql);
     }
     //factory method (building an object)
     public Author findAuthorById(int id){
@@ -160,7 +215,6 @@ public class Data {
         }
         return (Author) author;
     }
-
     //factory method (building an object)
     public Author findAuthorByName(String name){
         IPerson author = null;
@@ -183,6 +237,27 @@ public class Data {
         return (Author) author;
     }
 
+
+    public List<Book> booksWritenBy(Author author){
+        List<Book> result = new ArrayList();
+        try{
+            statement = connection.createStatement();
+            String sql = "SELECT * FROM books WHERE author_id = " + author.getId() + ";";
+            ResultSet resultSet = statement.executeQuery(sql);
+            while(resultSet.next()){
+                int id = resultSet.getInt("id");
+                String title = resultSet.getString("title");
+                Librarian librarian = findLibrarianById(resultSet.getInt("librarian_id"));
+                Book book = new Book(title, author, librarian);
+                book.setId(id);
+                result.add(book);
+            }
+
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+        return result;
+    }
     //factory method (building an object)
     public Librarian findLibrarianById(int id){
         IPerson librarian = null;
